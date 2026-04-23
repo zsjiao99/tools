@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🍚 干饭吧</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(3600deg); }
+    }
+    .spinning {
+      animation: spin 3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+    .result-pop {
+      animation: pop 0.5s ease-out;
+    }
+    @keyframes pop {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-orange-100 to-pink-100 min-h-screen py-10 px-4">
+  <div class="max-w-md mx-auto text-center">
+    
+    <h1 class="text-3xl font-bold text-gray-800 mb-2">🍚 干饭吧</h1>
+    <p id="timeTip" class="text-gray-500 mb-8">选择困难症救星！</p>
+
+    <!-- 转盘 -->
+    <div class="relative w-64 h-64 mx-auto mb-8">
+      <div id="wheel" class="w-full h-full rounded-full bg-white shadow-2xl flex items-center justify-center border-8 border-orange-400">
+        <div id="foodName" class="text-2xl font-bold text-orange-600 px-4">点击开始</div>
+      </div>
+      <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2">
+        <div class="w-0 h-0 border-l-8 border-r-8 border-t-16 border-l-transparent border-r-transparent border-t-red-500"></div>
+      </div>
+    </div>
+
+    <!-- 按钮 -->
+    <button 
+      id="startBtn"
+      onclick="startDraw()"
+      class="bg-orange-500 hover:bg-orange-600 text-white font-bold px-10 py-4 rounded-full text-xl shadow-lg transform hover:scale-105 transition-all mb-8"
+    >
+      🎲 开始抽签
+    </button>
+
+    <!-- 结果 -->
+    <div id="result" class="hidden bg-white rounded-2xl p-6 shadow-xl mb-8">
+      <p class="text-gray-500 text-sm mb-2">今天就决定是你了！</p>
+      <p id="resultText" class="text-3xl font-bold text-orange-600 result-pop"></p>
+      <p class="text-gray-400 text-xs mt-4">🎯 命中注定，不许改！</p>
+    </div>
+
+    <!-- 菜单列表 -->
+    <div class="bg-white/50 rounded-xl p-4 mb-6">
+      <p class="text-sm text-gray-500 mb-2">🍱 菜单库</p>
+      <div class="flex flex-wrap gap-2 justify-center text-sm">
+        <span class="bg-white px-2 py-1 rounded">麦当劳</span>
+        <span class="bg-white px-2 py-1 rounded">肯德基</span>
+        <span class="bg-white px-2 py-1 rounded">黄焖鸡</span>
+        <span class="bg-white px-2 py-1 rounded">麻辣烫</span>
+        <span class="bg-white px-2 py-1 rounded">奶茶</span>
+        <span class="bg-white px-2 py-1 rounded text-red-500 font-bold">不吃了减肥！</span>
+        <span class="bg-gray-200 px-2 py-1 rounded">还有60+道菜...</span>
+      </div>
+    </div>
+
+    <!-- 外卖红包入口 -->
+    <div class="grid grid-cols-2 gap-4">
+      <a href="https://union-click.jd.com/jdc?e=&p=JF8BAMgJK1olXDYCVV9cEksUBm8IG1sSXQIAVl9aCUkWAVhrXw9vHx91BV4QBXsFUQ0eM215IRZ7fj9%2FHnRgTjBmJQpFLW0cM2s4G1sZXwITB15tUxMSYl9aF1sSAWcBGVhcOEsSA24JGl8UWwYCBT0UCEIWAWcBGl8cWgMHDg" target="_blank" class="bg-yellow-500 hover:bg-yellow-600 text-white p-4 rounded-xl shadow-lg transition-all hover:scale-105">
+        <div class="text-2xl mb-1">🍱</div>
+        <div class="font-bold">领美团红包</div>
+        <div class="text-xs opacity-80">最高66元</div>
+      </a>
+      <a href="https://tb.ele.me/wow/eleme/act/channel-common-coupon?actId=123456" target="_blank" class="bg-blue-500 hover:bg-blue-600 text-white p-4 rounded-xl shadow-lg transition-all hover:scale-105">
+        <div class="text-2xl mb-1">🍔</div>
+        <div class="font-bold">领饿了么红包</div>
+        <div class="text-xs opacity-80">最高20元</div>
+      </a>
+    </div>
+
+    <p class="text-center text-gray-400 text-xs mt-6">领到红包的小伙伴，记得回来抽签哦 😉</p>
+
+  </div>
+
+  <script>
+    const hour = new Date().getHours();
+    const timeTip = document.getElementById('timeTip');
+    
+    const breakfast = ['包子', '豆浆', '油条', '煎饼果子', '肉夹馍', '手抓饼', '鸡蛋灌饼', '豆腐脑', '粥', '三明治', '饭团', '瑞幸咖啡', '星巴克', 'KFC早餐', '麦当劳早餐', '不吃了！'];
+    const lunch = ['麦当劳', '肯德基', '黄焖鸡米饭', '麻辣烫', '螺蛳粉', '兰州拉面', '沙县小吃', '饺子', '牛肉面', '重庆小面', '沙拉轻食', '冒菜', '麻辣香锅', '酸菜鱼', '排骨米饭', '盖浇饭', '木桶饭', '煲仔饭', '卤肉饭', '外卖随便点', '楼下食堂', '不吃了减肥！'];
+    const dinner = ['麦当劳', '肯德基', '麻辣烫', '螺蛳粉', '酸菜鱼', '水煮鱼', '小龙虾', '烧烤', '串串香', '火锅', '呷哺呷哺', '海底捞', '烤鱼', '烤鸭', '韩式烤肉', '部队火锅', '炸鸡', '日本料理', '泰国菜', '回家吃', '泡面', '不吃了减肥！', '老板请客！'];
+
+    let foods = [];
+    if (hour < 10) {
+      timeTip.innerText = '🌅 该吃早饭啦';
+      foods = breakfast;
+    } else if (hour < 16) {
+      timeTip.innerText = '☀️ 该吃午饭啦';
+      foods = lunch;
+    } else {
+      timeTip.innerText = '🌙 该吃晚饭啦';
+      foods = dinner;
+    }
+
+    let isDrawing = false;
+
+    function startDraw() {
+      if (isDrawing) return;
+      isDrawing = true;
+      
+      document.getElementById('result').classList.add('hidden');
+      const wheel = document.getElementById('wheel');
+      const foodName = document.getElementById('foodName');
+      const startBtn = document.getElementById('startBtn');
+      
+      startBtn.innerText = '抽签中...';
+      startBtn.classList.remove('bg-orange-500');
+      startBtn.classList.add('bg-gray-400');
+      
+      wheel.classList.add('spinning');
+      
+      let speed = 100;
+      const timer = setInterval(() => {
+        foodName.innerText = foods[Math.floor(Math.random() * foods.length)];
+      }, speed);
+      
+      setTimeout(() => {
+        clearInterval(timer);
+        wheel.classList.remove('spinning');
+        
+        const result = foods[Math.floor(Math.random() * foods.length)];
+        foodName.innerText = result;
+        
+        document.getElementById('resultText').innerText = result;
+        document.getElementById('result').classList.remove('hidden');
+        
+        startBtn.innerText = '🎲 再来一次';
+        startBtn.classList.remove('bg-gray-400');
+        startBtn.classList.add('bg-orange-500');
+        
+        isDrawing = false;
+      }, 3000);
+    }
+  </script>
+</body>
+</html>

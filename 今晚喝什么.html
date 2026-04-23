@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🍻 今晚喝什么</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(3600deg); }
+    }
+    .spinning {
+      animation: spin 3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+    .result-pop {
+      animation: pop 0.5s ease-out;
+    }
+    @keyframes pop {
+      0% { transform: scale(0); opacity: 0; }
+      50% { transform: scale(1.2); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-purple-900 to-indigo-900 min-h-screen py-10 px-4">
+  <div class="max-w-md mx-auto text-center">
+    
+    <h1 class="text-3xl font-bold text-white mb-2">🍻 今晚喝什么</h1>
+    <p class="text-purple-200 mb-8">酒局选择困难症救星！</p>
+
+    <!-- 转盘 -->
+    <div class="relative w-64 h-64 mx-auto mb-8">
+      <div id="wheel" class="w-full h-full rounded-full bg-white shadow-2xl flex items-center justify-center border-8 border-yellow-400">
+        <div id="drinkName" class="text-2xl font-bold text-purple-600 px-4">点击开始</div>
+      </div>
+      <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2">
+        <div class="w-0 h-0 border-l-8 border-r-8 border-t-16 border-l-transparent border-r-transparent border-t-red-500"></div>
+      </div>
+    </div>
+
+    <!-- 按钮 -->
+    <button 
+      id="startBtn"
+      onclick="startDraw()"
+      class="bg-yellow-500 hover:bg-yellow-600 text-gray-900 font-bold px-10 py-4 rounded-full text-xl shadow-lg transform hover:scale-105 transition-all mb-8"
+    >
+      🎲 开始抽签
+    </button>
+
+    <!-- 结果 -->
+    <div id="result" class="hidden bg-white rounded-2xl p-6 shadow-xl mb-8">
+      <p class="text-gray-500 text-sm mb-2">今晚就决定喝这个了！</p>
+      <p id="resultText" class="text-3xl font-bold text-purple-600 result-pop"></p>
+      <p class="text-gray-400 text-xs mt-4">🎯 命中注定，不许耍赖！</p>
+    </div>
+
+    <!-- 酒水购买入口 -->
+    <div class="bg-white/10 rounded-xl p-4 mb-6">
+      <p class="text-sm text-purple-200 mb-3">🛒 京东买酒，次日达！</p>
+      <div class="grid grid-cols-3 gap-2">
+        <a href="https://union-click.jd.com/jdc?e=&p=这里换成你的京东推广链接" target="_blank" class="bg-white/20 hover:bg-white/30 text-white p-3 rounded-lg text-sm transition-all">
+          🍺 啤酒
+        </a>
+        <a href="https://union-click.jd.com/jdc?e=&p=这里换成你的京东推广链接" target="_blank" class="bg-white/20 hover:bg-white/30 text-white p-3 rounded-lg text-sm transition-all">
+          🍷 红酒
+        </a>
+        <a href="https://union-click.jd.com/jdc?e=&p=这里换成你的京东推广链接" target="_blank" class="bg-white/20 hover:bg-white/30 text-white p-3 rounded-lg text-sm transition-all">
+          🥃 白酒
+        </a>
+      </div>
+    </div>
+
+    <!-- 菜单列表 -->
+    <div class="bg-white/10 rounded-xl p-4">
+      <p class="text-sm text-purple-200 mb-2">🥂 酒水单</p>
+      <div class="flex flex-wrap gap-2 justify-center text-sm">
+        <span class="bg-white/20 text-white px-2 py-1 rounded">啤酒</span>
+        <span class="bg-white/20 text-white px-2 py-1 rounded">白酒</span>
+        <span class="bg-white/20 text-white px-2 py-1 rounded">红酒</span>
+        <span class="bg-white/20 text-white px-2 py-1 rounded">可乐</span>
+        <span class="bg-yellow-500/80 text-gray-900 px-2 py-1 rounded font-bold">不喝了！</span>
+        <span class="bg-white/20 text-white px-2 py-1 rounded">还有20+...</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const drinks = [
+      '啤酒', '青岛', '百威', '科罗娜', '福佳白', '乌苏',
+      '白酒', '五粮液', '茅台', '剑南春', '江小白', '牛栏山',
+      '红酒', '干红', '起泡酒', '香槟',
+      '洋酒', '威士忌', '白兰地', '伏特加', '龙舌兰',
+      '鸡尾酒', '长岛冰茶', '莫吉托', '血腥玛丽', '玛格丽特',
+      '清酒', '烧酒', '梅子酒', '果酒',
+      '扎啤', '原浆', '鲜啤',
+      '可乐', '雪碧', '冰红茶', '果汁',
+      '不喝了！', '谁劝也不喝！', '老板先干一个！', '服务员，拿瓶酸奶！'
+    ];
+
+    let isDrawing = false;
+
+    function startDraw() {
+      if (isDrawing) return;
+      isDrawing = true;
+      
+      document.getElementById('result').classList.add('hidden');
+      const wheel = document.getElementById('wheel');
+      const drinkName = document.getElementById('drinkName');
+      const startBtn = document.getElementById('startBtn');
+      
+      startBtn.innerText = '抽签中...';
+      startBtn.classList.remove('bg-yellow-500');
+      startBtn.classList.add('bg-gray-600');
+      
+      wheel.classList.add('spinning');
+      
+      const timer = setInterval(() => {
+        drinkName.innerText = drinks[Math.floor(Math.random() * drinks.length)];
+      }, 100);
+      
+      setTimeout(() => {
+        clearInterval(timer);
+        wheel.classList.remove('spinning');
+        
+        const result = drinks[Math.floor(Math.random() * drinks.length)];
+        drinkName.innerText = result;
+        
+        document.getElementById('resultText').innerText = result;
+        document.getElementById('result').classList.remove('hidden');
+        
+        startBtn.innerText = '🎲 再来一杯';
+        startBtn.classList.remove('bg-gray-600');
+        startBtn.classList.add('bg-yellow-500');
+        
+        isDrawing = false;
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
