@@ -75,7 +75,7 @@
 
     <!-- 外卖红包入口 -->
     <div class="grid grid-cols-2 gap-4">
-      <a href="https://union-click.jd.com/jdc?e=&p=JF8BAMgJK1olXDYCVV9cEksUBm8IG1sSXQIAVl9aCUkWAVhrXw9vHx91BV4QBXsFUQ0eM215IRZ7fj9%2FHnRgTjBmJQpFLW0cM2s4G1sZXwITB15tUxMSYl9aF1sSAWcBGVhcOEsSA24JGl8UWwYCBT0UCEIWAWcBGl8cWgMHDg" target="_blank" class="bg-yellow-500 hover:bg-yellow-600 text-white p-4 rounded-xl shadow-lg transition-all hover:scale-105">
+      <a href="http://dpurl.cn/CaXOTKuz" target="_blank" class="bg-yellow-500 hover:bg-yellow-600 text-white p-4 rounded-xl shadow-lg transition-all hover:scale-105">
         <div class="text-2xl mb-1">🍱</div>
         <div class="font-bold">领美团红包</div>
         <div class="text-xs opacity-80">最高66元</div>
@@ -113,24 +113,7 @@
 
     let isDrawing = false;
 
-    async function addCount() {
-      try {
-        await fetch('https://api.countapi.xyz/hit/gfanba/draw');
-      } catch(e) {}
-    }
-
-    async function showCount() {
-      try {
-        const res = await fetch('https://api.countapi.xyz/get/gfanba/draw');
-        const data = await res.json();
-        console.log('✅ 已有 ' + data.value + ' 人抽签了！');
-      } catch(e) {}
-    }
-
-    showCount();
-
     function startDraw() {
-      addCount();
       if (isDrawing) return;
       isDrawing = true;
       
