@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>🍚 干饭吧</title>
+  <meta property="og:title" content="🍚 干饭吧 - 选择困难症救星">
+  <meta property="og:description" content="再也不用纠结今天吃什么了！来抽签决定吧！">
+  <meta property="og:image" content="https://img11.360buyimg.com/imagetools/jfs/t1/208827/33/25330/42284/647d2156F8d7c9d03/92c2c5c0b7a5a856.png">
+  <meta property="og:type" content="website">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     @keyframes spin {
@@ -109,7 +113,24 @@
 
     let isDrawing = false;
 
+    async function addCount() {
+      try {
+        await fetch('https://api.countapi.xyz/hit/gfanba/draw');
+      } catch(e) {}
+    }
+
+    async function showCount() {
+      try {
+        const res = await fetch('https://api.countapi.xyz/get/gfanba/draw');
+        const data = await res.json();
+        console.log('✅ 已有 ' + data.value + ' 人抽签了！');
+      } catch(e) {}
+    }
+
+    showCount();
+
     function startDraw() {
+      addCount();
       if (isDrawing) return;
       isDrawing = true;
       
