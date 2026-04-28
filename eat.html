@@ -220,7 +220,30 @@
 
   </div>
 
-  <script src="api/mock-backend.js"></script>
-  <script src="script.js"></script>
+  <!-- 时间戳参数强制 GitHub Pages 不缓存 JS -->
+  <script src="api/mock-backend.js?v=1.1"></script>
+  <script src="script.js?v=1.1"></script>
+  <script>
+    // 兜底错误捕获
+    window.onerror = function(msg, url, lineNo, columnNo, error) {
+      console.error('Error: ', msg, 'at line: ', lineNo);
+      // 如果按钮没绑定，5秒后显示提示
+      setTimeout(function() {
+        var btn = document.getElementById('startBtn');
+        if (btn && !btn.onclick && !btn._hasFallback) {
+          btn._hasFallback = true;
+          btn.onclick = function() {
+            if (window.startDraw) {
+              window.startDraw();
+            } else {
+              alert('初始化中，请稍候重试或刷新页面');
+              location.reload();
+            }
+          };
+        }
+      }, 5000);
+      return false;
+    };
+  </script>
 </body>
 </html>
