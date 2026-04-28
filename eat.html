@@ -4,144 +4,210 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>今天吃什么</title>
-    <meta property="og:title" content="今天吃什么 - 选择困难症救星">
-    <meta property="og:description" content="再也不用纠结吃什么了！来抽签决定吧！">
+  <meta property="og:title" content="今天吃什么 - 选择困难症救星">
+  <meta property="og:description" content="再也不用纠结吃什么了！来抽签决定吧！">
   <meta property="og:image" content="https://img11.360buyimg.com/imagetools/jfs/t1/208827/33/25330/42284/647d2156F8d7c9d03/92c2c5c0b7a5a856.png">
   <meta property="og:type" content="website">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
+    /* 优化动画性能，使用transform和opacity属性 */
     @keyframes spin {
       0% { transform: rotate(0deg); }
-      100% { transform: rotate(3600deg); }
+      100% { transform: rotate(2160deg); }
     }
     .spinning {
       animation: spin 3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+      will-change: transform;
     }
     .result-pop {
       animation: pop 0.5s ease-out;
+      will-change: transform, opacity;
     }
     @keyframes pop {
       0% { transform: scale(0); opacity: 0; }
       50% { transform: scale(1.2); }
       100% { transform: scale(1); opacity: 1; }
     }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in {
+      animation: fadeIn 0.5s ease-out;
+      will-change: transform, opacity;
+    }
+    @keyframes bounce {
+      0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+      40% { transform: translateY(-10px); }
+      60% { transform: translateY(-5px); }
+    }
+    .bounce {
+      animation: bounce 1s ease;
+      will-change: transform;
+    }
+    @keyframes slideIn {
+      from { transform: translateX(-100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .slide-in {
+      animation: slideIn 0.3s ease-out;
+      will-change: transform, opacity;
+    }
+    /* 滚动条样式 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #ff9a5a;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #ff7a3a;
+    }
+    /* 卡片悬停效果 */
+    .card-hover {
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .card-hover:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+    /* 按钮悬停效果 */
+    .btn-hover {
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-hover:hover {
+      transform: translateY(-2px) scale(1.02);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+    /* 转盘样式 */
+    .wheel-container {
+      position: relative;
+      display: inline-block;
+    }
+    .wheel-bg {
+      background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    }
+    /* 标签样式 */
+    .tag {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .tag:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    /* 动画延迟 */
+    .delay-100 {
+      animation-delay: 100ms;
+    }
+    .delay-200 {
+      animation-delay: 200ms;
+    }
+    .delay-300 {
+      animation-delay: 300ms;
+    }
   </style>
 </head>
-<body class="bg-gradient-to-br from-orange-100 to-pink-100 min-h-screen py-10 px-4">
-  <div class="max-w-md mx-auto text-center">
+<body class="bg-gradient-to-br from-orange-100 via-pink-100 to-orange-50 min-h-screen py-8 px-4">
+  <div class="max-w-md mx-auto text-center px-4">
     
-    <h1 class="text-3xl font-bold text-gray-800 mb-2">🍚 干饭吧</h1>
-    <p id="timeTip" class="text-gray-500 mb-8">选择困难症救星！</p>
+    <div class="fade-in">
+      <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-2">🍚 干饭吧</h1>
+      <p id="timeTip" class="text-gray-600 mb-8 md:mb-10 text-lg">选择困难症救星！</p>
+    </div>
+
+    <!-- 加载指示器 -->
+    <div id="loading" class="hidden fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+      <div class="bg-white rounded-xl p-6 shadow-2xl flex flex-col items-center transform transition-all duration-300 scale-100">
+        <div class="w-12 h-12 border-4 border-orange-400 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-gray-700">加载中...</p>
+      </div>
+    </div>
+
+    <!-- 提示消息 -->
+    <div id="toast" class="hidden fixed top-4 right-4 bg-white rounded-lg shadow-lg p-4 z-50 max-w-xs transform transition-all duration-300 slide-in">
+      <p id="toastMessage" class="text-gray-700"></p>
+    </div>
 
     <!-- 转盘 -->
-    <div class="relative w-64 h-64 mx-auto mb-8">
-      <div id="wheel" class="w-full h-full rounded-full bg-white shadow-2xl flex items-center justify-center border-8 border-orange-400">
-        <div id="foodName" class="text-2xl font-bold text-orange-600 px-4">点击开始</div>
+    <div class="relative w-56 h-56 sm:w-64 sm:h-64 md:w-72 md:h-72 mx-auto mb-8 md:mb-10 wheel-container">
+      <div id="wheel" class="w-full h-full rounded-full wheel-bg shadow-2xl flex items-center justify-center border-4 sm:border-6 md:border-8 border-orange-400 transition-all duration-300">
+        <div id="foodName" class="text-lg sm:text-2xl md:text-3xl font-bold text-orange-600 px-4 text-center">点击开始</div>
       </div>
       <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2">
-        <div class="w-0 h-0 border-l-8 border-r-8 border-t-16 border-l-transparent border-r-transparent border-t-red-500"></div>
+        <div class="w-0 h-0 border-l-8 sm:border-l-10 border-r-8 sm:border-r-10 border-t-16 sm:border-t-20 border-l-transparent border-r-transparent border-t-red-500"></div>
       </div>
     </div>
 
     <!-- 外卖红包入口 -->
-    <a href="http://dpurl.cn/fgO6ehBz" target="_blank" class="block bg-green-500 hover:bg-green-600 text-white p-4 rounded-xl shadow-lg transition-all hover:scale-105 text-center mb-6">
-      <div class="text-xl mb-1">🎁 抽签前先领红包</div>
-      <div class="text-sm opacity-90">反正都要点外卖，先领66元红包再抽！</div>
+    <a href="http://dpurl.cn/fgO6ehBz" target="_blank" class="block bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white p-4 sm:p-5 rounded-xl shadow-lg transition-all duration-300 hover:scale-105 text-center mb-6 sm:mb-8 card-hover">
+      <div class="text-lg sm:text-2xl mb-1">🎁 抽签前先领红包</div>
+      <div class="text-sm sm:text-base opacity-90">反正都要点外卖，先领66元红包再抽！</div>
     </a>
 
     <!-- 按钮 -->
     <button 
       id="startBtn"
       onclick="startDraw()"
-      class="bg-orange-500 hover:bg-orange-600 text-white font-bold px-10 py-4 rounded-full text-xl shadow-lg transform hover:scale-105 transition-all mb-8"
+      class="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white font-bold px-8 sm:px-10 md:px-12 py-4 sm:py-5 rounded-full text-lg sm:text-xl shadow-lg btn-hover mb-8 md:mb-10 w-full sm:w-auto"
     >
       🎲 开始抽签
     </button>
 
     <!-- 结果 -->
-    <div id="result" class="hidden bg-white rounded-2xl p-6 shadow-xl mb-8">
-      <p class="text-gray-500 text-sm mb-2">今天就决定是你了！</p>
-      <p id="resultText" class="text-3xl font-bold text-orange-600 result-pop"></p>
-      <p class="text-gray-400 text-xs mt-4">🎯 命中注定，不许改！</p>
+    <div id="result" class="hidden bg-white rounded-2xl p-5 sm:p-6 shadow-xl mb-8 md:mb-10 card-hover">
+      <p class="text-gray-600 text-sm mb-3">今天就决定是你了！</p>
+      <div class="flex items-center justify-center gap-4 sm:gap-5 mb-4 sm:mb-5">
+        <p id="resultText" class="text-2xl sm:text-3xl md:text-4xl font-bold text-orange-600 result-pop text-center"></p>
+        <button id="favoriteBtn" onclick="toggleFavorite()" class="text-gray-400 hover:text-yellow-500 transition-colors transform hover:scale-110">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+        </button>
+      </div>
+      <p class="text-gray-500 text-sm mt-3 sm:mt-4">🎯 命中注定，不许改！</p>
     </div>
 
     <!-- 菜单列表 -->
-    <div class="bg-white/50 rounded-xl p-4 mb-6">
-      <p class="text-sm text-gray-500 mb-2">🍱 菜单库</p>
-      <div class="flex flex-wrap gap-2 justify-center text-sm">
-        <span class="bg-white px-2 py-1 rounded">麦当劳</span>
-        <span class="bg-white px-2 py-1 rounded">肯德基</span>
-        <span class="bg-white px-2 py-1 rounded">黄焖鸡</span>
-        <span class="bg-white px-2 py-1 rounded">麻辣烫</span>
-        <span class="bg-white px-2 py-1 rounded">奶茶</span>
-        <span class="bg-white px-2 py-1 rounded text-red-500 font-bold">不吃了减肥！</span>
-        <span class="bg-gray-200 px-2 py-1 rounded">还有60+道菜...</span>
+    <div class="bg-white/70 backdrop-blur-sm rounded-xl p-4 sm:p-5 mb-6 sm:mb-8 card-hover">
+      <p class="text-sm text-gray-600 mb-3 font-medium">🍱 菜单库</p>
+      <div class="flex flex-wrap gap-2 justify-center text-sm sm:text-base">
+        <span class="bg-white px-3 py-1.5 rounded-full tag hover:bg-orange-100 transition-colors cursor-pointer">麦当劳</span>
+        <span class="bg-white px-3 py-1.5 rounded-full tag hover:bg-orange-100 transition-colors cursor-pointer">肯德基</span>
+        <span class="bg-white px-3 py-1.5 rounded-full tag hover:bg-orange-100 transition-colors cursor-pointer">黄焖鸡</span>
+        <span class="bg-white px-3 py-1.5 rounded-full tag hover:bg-orange-100 transition-colors cursor-pointer">麻辣烫</span>
+        <span class="bg-white px-3 py-1.5 rounded-full tag hover:bg-orange-100 transition-colors cursor-pointer">奶茶</span>
+        <span class="bg-white px-3 py-1.5 rounded-full text-red-500 font-bold tag hover:bg-red-100 transition-colors cursor-pointer">不吃了减肥！</span>
+        <span class="bg-gray-200 px-3 py-1.5 rounded-full tag hover:bg-gray-300 transition-colors cursor-pointer">还有60+道菜...</span>
       </div>
     </div>
 
-    <p class="text-center text-gray-400 text-xs mt-6">领到红包的小伙伴，记得回来抽签哦 😉</p>
+    <!-- 历史记录 -->
+    <div class="bg-white/70 backdrop-blur-sm rounded-xl p-4 sm:p-5 mb-6 sm:mb-8 card-hover">
+      <p class="text-sm text-gray-600 mb-3 font-medium">📋 历史记录</p>
+      <div id="historyList" class="text-sm sm:text-base max-h-32 sm:max-h-40 overflow-y-auto">
+        <p class="text-gray-500 text-sm text-center">暂无历史记录</p>
+      </div>
+    </div>
+
+    <!-- 收藏夹 -->
+    <div class="bg-white/70 backdrop-blur-sm rounded-xl p-4 sm:p-5 mb-6 sm:mb-8 card-hover">
+      <p class="text-sm text-gray-600 mb-3 font-medium">❤️ 我的收藏</p>
+      <div id="favoritesList" class="flex flex-wrap gap-2 justify-center text-sm sm:text-base">
+        <p class="text-gray-500 text-sm text-center w-full">暂无收藏</p>
+      </div>
+    </div>
+
+    <p class="text-center text-gray-500 text-sm mt-6 sm:mt-8">领到红包的小伙伴，记得回来抽签哦 😉</p>
 
   </div>
 
-  <script>
-    const hour = new Date().getHours();
-    const timeTip = document.getElementById('timeTip');
-    
-    const breakfast = ['包子', '豆浆', '油条', '煎饼果子', '肉夹馍', '手抓饼', '鸡蛋灌饼', '豆腐脑', '粥', '三明治', '饭团', '瑞幸咖啡', '星巴克', 'KFC早餐', '麦当劳早餐', '不吃了！'];
-    const lunch = ['麦当劳', '肯德基', '黄焖鸡米饭', '麻辣烫', '螺蛳粉', '兰州拉面', '沙县小吃', '饺子', '牛肉面', '重庆小面', '沙拉轻食', '冒菜', '麻辣香锅', '酸菜鱼', '排骨米饭', '盖浇饭', '木桶饭', '煲仔饭', '卤肉饭', '外卖随便点', '楼下食堂', '不吃了减肥！'];
-    const dinner = ['麦当劳', '肯德基', '麻辣烫', '螺蛳粉', '酸菜鱼', '水煮鱼', '小龙虾', '烧烤', '串串香', '火锅', '呷哺呷哺', '海底捞', '烤鱼', '烤鸭', '韩式烤肉', '部队火锅', '炸鸡', '日本料理', '泰国菜', '回家吃', '泡面', '不吃了减肥！', '老板请客！'];
-
-    let foods = [];
-    if (hour < 10) {
-      timeTip.innerText = '🌅 该吃早饭啦';
-      foods = breakfast;
-    } else if (hour < 16) {
-      timeTip.innerText = '☀️ 该吃午饭啦';
-      foods = lunch;
-    } else {
-      timeTip.innerText = '🌙 该吃晚饭啦';
-      foods = dinner;
-    }
-
-    let isDrawing = false;
-
-    function startDraw() {
-      if (isDrawing) return;
-      isDrawing = true;
-      
-      document.getElementById('result').classList.add('hidden');
-      const wheel = document.getElementById('wheel');
-      const foodName = document.getElementById('foodName');
-      const startBtn = document.getElementById('startBtn');
-      
-      startBtn.innerText = '抽签中...';
-      startBtn.classList.remove('bg-orange-500');
-      startBtn.classList.add('bg-gray-400');
-      
-      wheel.classList.add('spinning');
-      
-      let speed = 100;
-      const timer = setInterval(() => {
-        foodName.innerText = foods[Math.floor(Math.random() * foods.length)];
-      }, speed);
-      
-      setTimeout(() => {
-        clearInterval(timer);
-        wheel.classList.remove('spinning');
-        
-        const result = foods[Math.floor(Math.random() * foods.length)];
-        foodName.innerText = result;
-        
-        document.getElementById('resultText').innerText = result;
-        document.getElementById('result').classList.remove('hidden');
-        
-        startBtn.innerText = '🎲 再来一次';
-        startBtn.classList.remove('bg-gray-400');
-        startBtn.classList.add('bg-orange-500');
-        
-        isDrawing = false;
-      }, 3000);
-    }
-  </script>
+  <script src="api/mock-backend.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
