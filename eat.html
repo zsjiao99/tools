@@ -221,30 +221,290 @@
 
   </div>
 
-  <!-- 时间戳参数强制 GitHub Pages 不缓存 JS -->
-  <script src="api/mock-backend.js?v=1.1"></script>
-  <script src="script.js?v=1.1"></script>
+  <!-- 所有JS全部内联，单文件独立运行！ -->
   <script>
-    // 兜底错误捕获
-    window.onerror = function(msg, url, lineNo, columnNo, error) {
-      console.error('Error: ', msg, 'at line: ', lineNo);
-      // 如果按钮没绑定，5秒后显示提示
-      setTimeout(function() {
-        var btn = document.getElementById('startBtn');
-        if (btn && !btn.onclick && !btn._hasFallback) {
-          btn._hasFallback = true;
-          btn.onclick = function() {
-            if (window.startDraw) {
-              window.startDraw();
-            } else {
-              alert('初始化中，请稍候重试或刷新页面');
-              location.reload();
-            }
-          };
+    // ===== 后端 Mock (内联版) =====
+    window.MockBackend = {
+      menuData: {
+        breakfast: ['包子', '豆浆', '油条', '煎饼果子', '茶叶蛋', '豆腐脑', '粥', '馄饨', '面条', '生煎包'],
+        lunch: ['麦当劳', '肯德基', '黄焖鸡米饭', '麻辣烫', '螺蛳粉', '兰州拉面', '沙县小吃', '酸菜鱼', '宫保鸡丁', '鱼香肉丝', '盖浇饭', '炒饭', '炒面', '牛肉饭', '猪脚饭', '烧腊'],
+        dinner: ['火锅', '烧烤', '烤鱼', '小龙虾', '牛蛙', '椰子鸡', '日料', '韩料', '泰国菜', '湘菜', '川菜', '粤菜', '江浙菜', '东北菜']
+      },
+      healthCheck: async function() {
+        return { success: true, message: 'ok' };
+      },
+      getMenu: async function(type) {
+        return { success: true, data: this.menuData[type] || this.menuData.lunch };
+      },
+      getHistory: async function() {
+        const history = JSON.parse(localStorage.getItem('foodHistory') || '[]');
+        return { success: true, data: history.slice(-20) };
+      },
+      addHistory: async function(food) {
+        const history = JSON.parse(localStorage.getItem('foodHistory') || '[]');
+        history.unshift({ food, timestamp: Date.now() });
+        localStorage.setItem('foodHistory', JSON.stringify(history.slice(0, 100)));
+        return { success: true };
+      },
+      getFavorites: async function() {
+        const favorites = JSON.parse(localStorage.getItem('foodFavorites') || '[]');
+        return { success: true, data: favorites };
+      },
+      toggleFavorite: async function(food) {
+        const favorites = JSON.parse(localStorage.getItem('foodFavorites') || '[]');
+        const index = favorites.indexOf(food);
+        let msg;
+        if (index > -1) {
+          favorites.splice(index, 1);
+          msg = '已取消收藏';
+        } else {
+          favorites.push(food);
+          msg = '已添加收藏';
         }
-      }, 5000);
-      return false;
+        localStorage.setItem('foodFavorites', JSON.stringify(favorites));
+        return { success: true, message: msg };
+      },
+      removeFavorite: async function(food) {
+        let favorites = JSON.parse(localStorage.getItem('foodFavorites') || '[]');
+        favorites = favorites.filter(f => f !== food);
+        localStorage.setItem('foodFavorites', JSON.stringify(favorites));
+        return { success: true, message: '已移除收藏' };
+      }
     };
+
+    // ===== 游戏主逻辑 (内联版) =====
+    (function() {
+      console.log('⚡ 单文件版 - 吃什么 v1.2');
+      
+      let elements = {};
+      let foods = ['麦当劳', '肯德基', '黄焖鸡米饭', '麻辣烫', '螺蛳粉', '兰州拉面'];
+      let isDrawing = false;
+      let history = [];
+      let favorites = [];
+
+      function emergencyStartDraw() {
+        console.log('🎲 点击了按钮');
+        if (!window._appInitialized) {
+          console.log('⚠️  强制初始化');
+          init();
+          setTimeout(() => startDrawReal(), 500);
+          return;
+        }
+        startDrawReal();
+      }
+      
+      window.startDraw = emergencyStartDraw;
+
+      function getElements() {
+        elements = {
+          timeTip: document.getElementById('timeTip'),
+          wheel: document.getElementById('wheel'),
+          foodName: document.getElementById('foodName'),
+          startBtn: document.getElementById('startBtn'),
+          result: document.getElementById('result'),
+          resultText: document.getElementById('resultText'),
+          favoriteBtn: document.getElementById('favoriteBtn'),
+          historyList: document.getElementById('historyList'),
+          favoritesList: document.getElementById('favoritesList'),
+          loading: document.getElementById('loading'),
+          toast: document.getElementById('toast'),
+          toastMessage: document.getElementById('toastMessage')
+        };
+        return elements;
+      }
+
+      function getMenuTypeByTime(hour) {
+        if (hour < 10) {
+          if(elements.timeTip) elements.timeTip.innerText = '🌅 该吃早饭啦';
+          return 'breakfast';
+        } else if (hour < 16) {
+          if(elements.timeTip) elements.timeTip.innerText = '☀️ 该吃午饭啦';
+          return 'lunch';
+        } else {
+          if(elements.timeTip) elements.timeTip.innerText = '🌙 该吃晚饭啦';
+          return 'dinner';
+        }
+      }
+
+      function showLoading() {
+        if (elements.loading) elements.loading.classList.remove('hidden');
+      }
+
+      function hideLoading() {
+        if (elements.loading) elements.loading.classList.add('hidden');
+      }
+
+      function showToast(message, duration = 2000) {
+        if (elements.toast && elements.toastMessage) {
+          elements.toastMessage.innerText = message;
+          elements.toast.classList.remove('hidden');
+          setTimeout(() => elements.toast.classList.add('hidden'), duration);
+        }
+      }
+
+      function getRandomFood() {
+        return foods[Math.floor(Math.random() * foods.length)];
+      }
+
+      function updateHistoryDisplay() {
+        if (!elements.historyList) return;
+        elements.historyList.innerHTML = '';
+        if (history.length === 0) {
+          elements.historyList.innerHTML = '<p class="text-gray-500 text-sm text-center">暂无历史记录</p>';
+        } else {
+          history.slice(0, 10).forEach((item, index) => {
+            const date = new Date(item.timestamp);
+            const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+            const div = document.createElement('div');
+            div.className = 'flex justify-between items-center p-2.5 bg-white rounded-lg mb-2 shadow-sm';
+            div.innerHTML = `<span>${item.food}</span><span class="text-gray-500 text-sm">${timeStr}</span>`;
+            elements.historyList.appendChild(div);
+          });
+        }
+      }
+
+      function updateFavoritesDisplay() {
+        if (!elements.favoritesList) return;
+        elements.favoritesList.innerHTML = '';
+        if (favorites.length === 0) {
+          elements.favoritesList.innerHTML = '<p class="text-gray-500 text-sm text-center w-full">暂无收藏</p>';
+        } else {
+          favorites.forEach((food) => {
+            const span = document.createElement('span');
+            span.className = 'bg-white px-3 py-1.5 rounded-full shadow-sm cursor-pointer hover:bg-red-50';
+            span.textContent = food;
+            span.onclick = () => removeFavorite(food);
+            elements.favoritesList.appendChild(span);
+          });
+        }
+      }
+
+      function updateFavoriteButton() {
+        if (!elements.favoriteBtn || !elements.resultText) return;
+        const favorited = favorites.includes(elements.resultText.innerText);
+        elements.favoriteBtn.innerHTML = favorited 
+          ? '<svg width="24" height="24" fill="currentColor" class="text-yellow-500"><path d="m20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>'
+          : '<svg width="24" height="24" fill="none" stroke="currentColor" class="text-gray-400"><path d="m20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>';
+      }
+
+      async function toggleFavorite(food) {
+        const response = await window.MockBackend.toggleFavorite(food);
+        if (response.success) {
+          favorites = (await window.MockBackend.getFavorites()).data;
+          updateFavoritesDisplay();
+          updateFavoriteButton();
+          showToast(response.message);
+        }
+      }
+
+      async function removeFavorite(food) {
+        await window.MockBackend.removeFavorite(food);
+        favorites = (await window.MockBackend.getFavorites()).data;
+        updateFavoritesDisplay();
+        updateFavoriteButton();
+        showToast('已取消收藏');
+      }
+
+      async function startDrawReal() {
+        if (isDrawing) return;
+        isDrawing = true;
+        
+        if (elements.result) elements.result.classList.add('hidden');
+        if (elements.startBtn) {
+          elements.startBtn.innerText = '抽签中...';
+          elements.startBtn.classList.remove('from-orange-500', 'to-orange-600');
+          elements.startBtn.classList.add('bg-gray-400');
+        }
+        if (elements.wheel) elements.wheel.classList.add('spinning');
+        
+        let speed = 100;
+        let frameCount = 0;
+        
+        function drawFrame() {
+          if (frameCount < 20) {
+            requestAnimationFrame(() => {
+              if (elements.foodName) elements.foodName.innerText = getRandomFood();
+              frameCount++;
+              speed = Math.max(30, speed - 3);
+              setTimeout(drawFrame, speed);
+            });
+          }
+        }
+        drawFrame();
+        
+        setTimeout(async () => {
+          if (elements.wheel) elements.wheel.classList.remove('spinning');
+          
+          const result = getRandomFood();
+          if (elements.foodName) elements.foodName.innerText = result;
+          
+          await window.MockBackend.addHistory(result);
+          history = (await window.MockBackend.getHistory()).data;
+          updateHistoryDisplay();
+          
+          if (elements.resultText) elements.resultText.innerText = result;
+          if (elements.result) elements.result.classList.remove('hidden');
+          
+          updateFavoriteButton();
+          
+          if (elements.startBtn) {
+            elements.startBtn.innerText = '🎲 再来一次';
+            elements.startBtn.classList.remove('bg-gray-400');
+            elements.startBtn.classList.add('from-orange-500', 'to-orange-600');
+          }
+          
+          isDrawing = false;
+        }, 3000);
+      }
+
+      async function init() {
+        console.log('🚀 开始初始化...');
+        
+        getElements();
+        console.log('📦 DOM元素获取完成', elements.startBtn ? '✓ startBtn存在' : '✗ startBtn不存在');
+        
+        showLoading();
+
+        try {
+          const hour = new Date().getHours();
+          const menuType = getMenuTypeByTime(hour);
+          const menuResponse = await window.MockBackend.getMenu(menuType);
+          foods = menuResponse.data;
+          
+          history = (await window.MockBackend.getHistory()).data;
+          favorites = (await window.MockBackend.getFavorites()).data;
+          
+          updateHistoryDisplay();
+          updateFavoritesDisplay();
+          
+          if (elements.favoriteBtn) {
+            elements.favoriteBtn.onclick = function() {
+              const currentFood = elements.resultText.innerText;
+              if (currentFood && currentFood !== '点击开始') toggleFavorite(currentFood);
+            };
+          }
+          
+          window._appInitialized = true;
+          window.startDraw = startDrawReal;
+          console.log('✅ 初始化完成！');
+        } catch (e) {
+          console.error('初始化错误:', e);
+        } finally {
+          setTimeout(hideLoading, 300);
+        }
+      }
+
+      // 防弹初始化三保险
+      if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        setTimeout(init, 100);
+      } else {
+        document.addEventListener('DOMContentLoaded', init);
+      }
+      setTimeout(init, 3000);
+
+      window.removeFavorite = removeFavorite;
+      window.forceInit = init;
+    })();
   </script>
 </body>
 </html>
